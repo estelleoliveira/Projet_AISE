@@ -50,23 +50,73 @@ BlockHeader* get_free_block(size_t size){
     }
     return NULL;
 }
+//recherche le meilleur bloc libre 
+BlockHeader* get_best_fit_block(size_t size) {
+    // printf("Getting best fit block...");
+    int class_index;
+    size_t class_size;
+    class_index = get_class_index(size, &class_size);
+
+    BlockHeader* best_fit = NULL;
+    BlockHeader* prev = NULL;
+    BlockHeader* current = free_lists[class_index];
+
+    // Parcourir la liste des blocs libres et trouver le meilleur bloc
+    while (current) {
+        if (current->size >= size && (!best_fit || current->size < best_fit->size)) {
+            best_fit = current;
+        }
+        current = current->next;
+    }
+
+    if (best_fit) {
+        // Retirer le bloc de la liste des blocs libres
+        if (prev) {
+            prev->next = best_fit->next;
+        } else {
+            free_lists[class_index] = best_fit->next;
+        }
+    }
+    return best_fit;
+}
+
+
+// void* my_malloc(size_t size) {
+//     size_t total_size = size + HEADER_SIZE;
+//     BlockHeader* header = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS , -1, 0);
+
+//     if (header == MAP_FAILED) {
+//         perror("mmap failed");
+//         return NULL;
+//     }
+
+//     header->size = total_size;
+//     return (void*)(header + 1);
+// }
+
+//Version  non optimisé avec recherche de bloc libres
 
 void* my_malloc(size_t size) {
+    
+
     size_t total_size = size + HEADER_SIZE;
     //On cherche d'abord un bloc disponible ds le cache
-    BlockHeader* header = get_free_block(size);
+    BlockHeader* header = get_best_fit_block(size);
+
     if (!header){
-        BlockHeader* header = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS , -1, 0);
+        header = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS , -1, 0);
         //vérifie si mmap a réussi
         if (header == MAP_FAILED) {
             perror("mmap failed");
             return NULL;
         }
     }
-
     header->size = total_size;
     return (void*)(header + 1);
+    
 }
+
+//optimisation pour fusionner avec le bloc suivant si il est libre
 
 void coalesce_blocks(BlockHeader* block){
     if (block->next && (char*)block + block->size == (char*)block->next){
@@ -75,10 +125,13 @@ void coalesce_blocks(BlockHeader* block){
     }
 }
 
+
 void my_free(void* ptr) {
+    if (ptr==NULL) return;
     
     BlockHeader* header = (BlockHeader*)ptr - 1;
-   
+    coalesce_blocks(header);
+    recycle_block(header);
     if (munmap(header, header->size) == -1) {
         perror("munmap failed");
     }
@@ -94,6 +147,7 @@ double measure_allocations(int num_allocations, size_t size, void* (*alloc_func)
 
     // Allocation
     for (int i = 0; i < num_allocations; i++) {
+       
         ptrs[i] = alloc_func(size);
         if (ptrs[i] == NULL) {
             perror("Allocation failed");
