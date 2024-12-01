@@ -17,6 +17,7 @@ typedef struct BlockHeader {
 int get_class_index(size_t size, size_t* class_size);
 
 void* my_malloc(size_t size);
+void* my_malloc_simple(size_t size);
 
 void my_free(void* ptr);
 
