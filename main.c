@@ -42,10 +42,12 @@ int main() {
 
     srand((unsigned int)time(NULL));    //permet de ne pas avoir toujours la même valeur généré
     size = 1 + rand() % 250;    //génère un bloc de taille aléatoire entre 1 et 250
+    // size = 126;
     class_index = get_class_index(size, &class_size);
     printf("Taille générée aléatoirement : %zu\n", size);
     printf("Allocation d'un bloc de %zu octets...\n", size);
     printf("Classe sélectionnée : %d (Taille de classe : %zu octets)\n", class_index, class_size);
+    //My_alloc crashes when size < 128 and >64
     void* ptr3= my_malloc(size);
     if (ptr3) {
         printf("Bloc alloué à l'adresse : %p\n", ptr3);
@@ -58,7 +60,7 @@ int main() {
     printf("Bloc 3 libéré avec succès.\n\n");
 
     printf("Mesures de performances:\n\n");
-    const int n_allocations = 5;
+    const int n_allocations = 100000;
 
     size_t block_size[] = {30, 70, size};
     for (int i=0;i<3; ++i){
@@ -67,14 +69,17 @@ int main() {
         if (time_malloc<0) return 1;
         printf("Temps: %lf pour l'allocation et libération de %d blocs mémoires de taille %zu avec méthodes malloc() et free(), alloc/sec %lf \n", time_malloc, n_allocations, block_size[i], time_malloc/ (double)n_allocations );
 
-        double time_mmap = measure_allocations(n_allocations, block_size[i], my_malloc, my_free);
+        double time_mmap = measure_allocations(n_allocations, block_size[i], my_malloc_simple, my_free);
         if (time_mmap<0) return 1;
         printf("Temps: %lf pour l'allocation et libération de %d blocs mémoires de taille %zu avec méthodes my_malloc() et my_free(), alloc/sec %lf \n", time_mmap, n_allocations, block_size[i], time_mmap/ (double)n_allocations );
 
-
-    
-
-
     }
+
+    // printf("Testing measure_allocations");
+    // for (int j=0; j<1; ++j){
+    //     printf("test 1: %lf", measure_allocations(n_allocations,size, my_malloc_simple, my_free));
+    // }
+
+
     return 0;
 }

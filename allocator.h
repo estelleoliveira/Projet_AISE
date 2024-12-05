@@ -18,10 +18,11 @@ int get_class_index(size_t size, size_t* class_size);
 
 void* my_malloc(size_t size);
 void* my_malloc_simple(size_t size);
-
+void my_free_simple(void *ptr);
 void my_free(void* ptr);
 
 double measure_allocations(int num_allocations, size_t size, void* (*alloc_func)(size_t), void (*free_func)(void*));
+double measure_allocations_simple(int num_allocations, size_t size, void* (*alloc_func)(size_t), void (*free_func)(void*));
 
 
 
