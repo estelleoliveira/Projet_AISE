@@ -6,6 +6,17 @@
 
 #include "allocator.h"
 
+
+/*Les optimisations faites:
+Coalescence des blocs libres dans my_free()
+Alignement des blocs mémoires avec my_malloc_align()
+
+TODO:
+-> Réparer la fonction get_free_block()
+
+
+*/
+
 int main() {
     size_t size = 70;
     size_t class_size;

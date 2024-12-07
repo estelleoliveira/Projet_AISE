@@ -60,20 +60,8 @@ int get_class_index(size_t size, size_t* class_size) {
     return index;
 }
 
-//recuperer dans la liste de blocs libres pour une taille donnée
-// BlockHeader* get_free_block(size_t size){
-//     int class_index;
-//     size_t class_size;
-//     class_index = get_class_index(size, &class_size);
 
-//     BlockHeader* block = free_lists[class_index];
-//     if (block){
-//         free_lists[class_index] = block->next;
-//         return block;
-//     }
-//     return NULL;
-// }
-
+    
 
 
 BlockHeader* get_free_block(size_t size) {
