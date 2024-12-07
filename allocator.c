@@ -74,28 +74,7 @@ int get_class_index(size_t size, size_t* class_size) {
 //     return NULL;
 // }
 
-// BlockHeader* get_free_block(size_t size) {
-//     int class_index;
-//     size_t class_size;
-//     class_index = get_class_index(size, &class_size);
 
-//     // Vérifie si l'index est valide
-//     if (class_index == -1) {
-//         return NULL;  // Retourne NULL si l'index est invalide
-//     }
-
-//     // Vérifie que la liste de blocs pour cette classe est valide
-//     BlockHeader* block = free_lists[class_index];
-//     if (!block) {
-//         printf("Aucun bloc libre trouvé pour la taille %zu\n", size);
-//     }
-
-//     if (block) {
-//         free_lists[class_index] = block->next;  // Enlever le premier bloc de la liste
-//         block->next = NULL;  // S'assurer qu'il n'a plus de lien vers un autre bloc
-//     }
-//     return block;
-// }
 
 BlockHeader* get_free_block(size_t size) {
     int class_index;
@@ -159,23 +138,9 @@ BlockHeader* get_best_fit_block(size_t size) {
 }
 
 
-//Version  non optimisé 
 
-// void* my_malloc_simple(size_t size) {
-//     size_t total_size = size + HEADER_SIZE;
-//     BlockHeader* header = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS , -1, 0);
-
-//     if (header == MAP_FAILED) {
-//         perror("mmap failed");
-//         return NULL;
-//     }
-
-//     header->size = total_size;
-//     return (void*)(header + 1);
-// }
 
 //optimisation pour fusionner avec le bloc suivant si il est libre
-
 void coalesce_blocks(BlockHeader* block){
     if (block->next && (char*)block + block->size == (char*)block->next){
         block->size += block->next->size;
@@ -185,27 +150,25 @@ void coalesce_blocks(BlockHeader* block){
 
 
 
+// void* my_malloc(size_t size) {
+//     printf("Tentative d'allocation de %zu octets\n", size);
 
-
-void* my_malloc(size_t size) {
-    printf("Tentative d'allocation de %zu octets\n", size);
-
-    size_t total_size = size + HEADER_SIZE;
-    BlockHeader* header = get_free_block(size);
+//     size_t total_size = size + HEADER_SIZE;
+//     BlockHeader* header = get_free_block(size);
     
-    if (!header) {
-        printf("Aucun bloc libre trouvé, allocation via mmap\n");
-        header = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS , -1, 0);
-        if (header == MAP_FAILED) {
-            perror("mmap failed");
-            return NULL;
-        }
-        printf("Bloc alloué avec mmap à l'adresse : %p\n", header);  // Ajout pour le débogage
-    }
+//     if (!header) {
+//         printf("Aucun bloc libre trouvé, allocation via mmap\n");
+//         header = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS , -1, 0);
+//         if (header == MAP_FAILED) {
+//             perror("mmap failed");
+//             return NULL;
+//         }
+//         printf("Bloc alloué avec mmap à l'adresse : %p\n", header);  // Ajout pour le débogage
+//     }
 
-    header->size = total_size;
-    return (void*)(header + 1);
-}
+//     header->size = total_size;
+//     return (void*)(header + 1);
+// }
 
 void my_free(void* ptr) {
     if (ptr == NULL) {
@@ -214,7 +177,7 @@ void my_free(void* ptr) {
     }
 
     BlockHeader* header = (BlockHeader*)ptr - 1;
-    printf("Libération du bloc à l'adresse %p, taille %zu\n", header, header->size);  // Ajout pour le débogage
+    //printf("Libération du bloc à l'adresse %p, taille %zu\n", header, header->size);  // Ajout pour le débogage
 
     coalesce_blocks(header);
     recycle_block(header);
@@ -222,16 +185,6 @@ void my_free(void* ptr) {
     if (munmap(header, header->size) == -1) {
         perror("munmap failed");
     }
-}
-
-
-
-double measure_allocations_simple(int num_allocations, size_t size, void* (*alloc_func)(size_t), void (*free_func)(void*)) {
-    void* ptr = alloc_func(size);
-    free_func(ptr);
-    printf("Succesful");
-    return 1.0;
-
 }
 
 
@@ -244,18 +197,18 @@ double measure_allocations(int num_allocations, size_t size, void* (*alloc_func)
 
     // Allocation
     for (int i = 0; i < num_allocations; i++) {
-        printf("Allocation #%d de taille %zu\n", i + 1, size);
+        //printf("Allocation #%d de taille %zu\n", i + 1, size);
         ptrs[i] = alloc_func(size);
         if (ptrs[i] == NULL) {
             perror("Allocation failed");
             return -1.0;
         }
-        printf("Bloc alloué à l'adresse %p\n", ptrs[i]);  // Affiche l'adresse allouée
+        //printf("Bloc alloué à l'adresse %p\n", ptrs[i]);  // Affiche l'adresse allouée
     }
 
     // Libération
     for (int i = 0; i < num_allocations; i++) {
-        printf("Libération du bloc à l'adresse %p\n", ptrs[i]);
+        //printf("Libération du bloc à l'adresse %p\n", ptrs[i]);
         free_func(ptrs[i]);
     }
 
@@ -268,8 +221,8 @@ double measure_allocations(int num_allocations, size_t size, void* (*alloc_func)
     return elapsed_time;
 }
 
-void* my_malloc_simple(size_t size) {
-    printf("Tentative d'allocation de %zu octets avec mmap\n", size);
+void* my_malloc(size_t size) {
+    //printf("Tentative d'allocation de %zu octets avec mmap\n", size);
 
     // Calculer la taille totale nécessaire pour l'allocation
     size_t total_size = size + HEADER_SIZE;
@@ -285,32 +238,38 @@ void* my_malloc_simple(size_t size) {
     header->size = total_size;
 
     // Afficher l'adresse du bloc alloué pour le débogage
-    printf("Bloc alloué avec mmap à l'adresse : %p\n", header);
+    //printf("Bloc alloué avec mmap à l'adresse : %p\n", header);
 
     // Retourner le pointeur vers la mémoire après l'en-tête
     return (void*)(header + 1);  // Le retour se fait après l'en-tête du bloc
 }
 
-void my_free_simple(void* ptr) {
-    if (ptr == NULL) {
-        printf("Libération d'un bloc NULL\n");
-        return;
+// Fonction pour allouer de la mémoire avec alignement
+void* my_malloc_align(size_t size) {
+    // Calculer la taille totale nécessaire pour l'allocation (avec l'en-tête et l'alignement)
+    size_t total_size = size + HEADER_SIZE;
+
+    // Allouer un bloc de mémoire via mmap
+    BlockHeader* header = mmap(NULL, total_size + ALIGNMENT - 1, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (header == MAP_FAILED) {
+        perror("mmap failed");
+        return NULL;  // Retourner NULL si mmap échoue
     }
 
-    BlockHeader* header = (BlockHeader*)ptr - 1;  // Retourner à l'en-tête du bloc
+    // Aligner le bloc mémoire
+    void* aligned_ptr = align_memory((void*)(header + 1), ALIGNMENT);  // Alignement après l'en-tête
 
-    // Afficher les informations pour le débogage
-    printf("Libération du bloc à l'adresse %p, taille %zu\n", header, header->size);
+    // Calculer la taille totale du bloc alloué (incluant l'en-tête)
+    header->size = total_size;
 
-    // Coalescer les blocs voisins si nécessaire
-    coalesce_blocks(header);
+    // Retourner le pointeur vers la mémoire après l'en-tête aligné
+    return aligned_ptr;
+}
 
-    // Recycler le bloc dans la liste des blocs libres
-    recycle_block(header);
-
-    // Libérer la mémoire avec munmap
-    if (munmap(header, header->size) == -1) {
-        perror("munmap failed");
-    }
+// Fonction pour ajuster l'adresse à l'alignement souhaité
+void* align_memory(void* ptr, size_t alignment) {
+    __intptr_t addr = (__intptr_t)ptr;
+    __intptr_t aligned_addr = (addr + alignment - 1) & ~(alignment - 1);
+    return (void*)aligned_addr;
 }
 
