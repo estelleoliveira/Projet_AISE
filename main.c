@@ -12,7 +12,8 @@ Coalescence des blocs libres dans my_free()
 Alignement des blocs mémoires avec my_malloc_align()
 
 TODO:
--> Réparer la fonction get_free_block()
+-> Réparer la fonction get_free_block() 
+//Probablement une affaire de pointeur nul
 
 
 */
@@ -71,16 +72,16 @@ int main() {
     printf("Bloc 3 libéré avec succès.\n\n");
 
     printf("Mesures de performances:\n\n");
-    const int n_allocations = 10000;
+    const int n_allocations = 100;
 
     size_t block_size[] = {30, 70, size};
-    for (int i=0;i<3; ++i){
+    for (int i=16;i<n_allocations; ++i){
 
-        double time_malloc = measure_allocations(n_allocations, block_size[i], malloc, free);
+        double time_malloc = measure_allocations(n_allocations, i, malloc, free);
         if (time_malloc<0) return 1;
         printf("Temps: %lf pour l'allocation et libération de %d blocs mémoires de taille %zu avec méthodes malloc() et free(), alloc/sec %lf \n", time_malloc, n_allocations, block_size[i], time_malloc/ (double)n_allocations );
 
-        double time_mmap = measure_allocations(n_allocations, block_size[i], my_malloc_align, my_free);
+        double time_mmap = measure_allocations(n_allocations, i, my_malloc, my_free);
         if (time_mmap<0) return 1;
         printf("Temps: %lf pour l'allocation et libération de %d blocs mémoires de taille %zu avec méthodes my_malloc_align() et my_free(), alloc/sec %lf \n", time_mmap, n_allocations, block_size[i], time_mmap/ (double)n_allocations );
 
@@ -90,6 +91,8 @@ int main() {
     // for (int j=0; j<1; ++j){
     //     printf("test 1: %lf", measure_allocations(n_allocations,size, my_malloc_simple, my_free));
     // }
+
+
 
 
     return 0;
