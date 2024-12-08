@@ -8,19 +8,7 @@
 #include "allocator.h"
 //liste globale des blocs libres classés par tailles
 BlockHeader* free_lists[NUM_CLASSES] = {NULL};
-//trouver la classe de taille pour une taille donnée
-// int get_class_index(size_t size, size_t* class_size) {
-//     int index = 0;
-//     size_t current_size = MIN_BLOCK_SIZE;
-//     while (size > current_size && index < NUM_CLASSES - 1) {
-//         current_size *= 2;
-//         index++;
-//     }
-//     if (class_size) {
-//         *class_size = current_size; // Taille finale de la classe
-//     }
-//     return index;
-// }
+
 
 
 
@@ -37,10 +25,15 @@ void recycle_block(BlockHeader* block){
     int class_index;
     size_t class_size;
     class_index = get_class_index(block->size - HEADER_SIZE, &class_size);
+    if (class_index==-1) {
+        printf("Invalid index for block recycling!\n");  
+        return;
+    }
     block->next =free_lists[class_index];
     free_lists[class_index] =block;
 }
 
+//trouver la classe de taille pour une taille donnée
 int get_class_index(size_t size, size_t* class_size) {
     int index = 0;
     size_t current_size = MIN_BLOCK_SIZE;
@@ -63,7 +56,8 @@ int get_class_index(size_t size, size_t* class_size) {
 
     
 
-
+//Bug
+//MAybe linked to coalescence block
 BlockHeader* get_free_block(size_t size) {
     int class_index;
     size_t class_size;
@@ -131,6 +125,7 @@ BlockHeader* get_best_fit_block(size_t size) {
 //optimisation pour fusionner avec le bloc suivant si il est libre
 void coalesce_blocks(BlockHeader* block){
     if (block->next && (char*)block + block->size == (char*)block->next){
+        printf("Fusion des blocs à l'adresse %p et %p\n", block, block->next);
         block->size += block->next->size;
         block->next = block->next->next;
     }
@@ -138,25 +133,25 @@ void coalesce_blocks(BlockHeader* block){
 
 
 
-// void* my_malloc(size_t size) {
-//     printf("Tentative d'allocation de %zu octets\n", size);
+void* my_malloc(size_t size) {
+    printf("Tentative d'allocation de %zu octets\n", size);
 
-//     size_t total_size = size + HEADER_SIZE;
-//     BlockHeader* header = get_free_block(size);
+    size_t total_size = size + HEADER_SIZE;
+    BlockHeader* header = get_free_block(size);
     
-//     if (!header) {
-//         printf("Aucun bloc libre trouvé, allocation via mmap\n");
-//         header = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS , -1, 0);
-//         if (header == MAP_FAILED) {
-//             perror("mmap failed");
-//             return NULL;
-//         }
-//         printf("Bloc alloué avec mmap à l'adresse : %p\n", header);  // Ajout pour le débogage
-//     }
+    if (!header) {
+        printf("Aucun bloc libre trouvé, allocation via mmap\n");
+        header = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS , -1, 0);
+        if (header == MAP_FAILED) {
+            perror("mmap failed");
+            return NULL;
+        }
+        printf("Bloc alloué avec mmap à l'adresse : %p\n", header);  // Ajout pour le débogage
+    }
 
-//     header->size = total_size;
-//     return (void*)(header + 1);
-// }
+    header->size = total_size;
+    return (void*)(header + 1);
+}
 
 void my_free(void* ptr) {
     if (ptr == NULL) {
@@ -209,28 +204,28 @@ double measure_allocations(int num_allocations, size_t size, void* (*alloc_func)
     return elapsed_time;
 }
 
-void* my_malloc(size_t size) {
-    //printf("Tentative d'allocation de %zu octets avec mmap\n", size);
+// void* my_malloc(size_t size) {
+//     //printf("Tentative d'allocation de %zu octets avec mmap\n", size);
 
-    // Calculer la taille totale nécessaire pour l'allocation
-    size_t total_size = size + HEADER_SIZE;
+//     // Calculer la taille totale nécessaire pour l'allocation
+//     size_t total_size = size + HEADER_SIZE;
 
-    // Allouer un bloc de mémoire via mmap
-    BlockHeader* header = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (header == MAP_FAILED) {
-        perror("mmap failed");
-        return NULL;  // Retourner NULL si mmap échoue
-    }
+//     // Allouer un bloc de mémoire via mmap
+//     BlockHeader* header = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+//     if (header == MAP_FAILED) {
+//         perror("mmap failed");
+//         return NULL;  // Retourner NULL si mmap échoue
+//     }
 
-    // Initialiser la taille du bloc alloué
-    header->size = total_size;
+//     // Initialiser la taille du bloc alloué
+//     header->size = total_size;
 
-    // Afficher l'adresse du bloc alloué pour le débogage
-    //printf("Bloc alloué avec mmap à l'adresse : %p\n", header);
+//     // Afficher l'adresse du bloc alloué pour le débogage
+//     //printf("Bloc alloué avec mmap à l'adresse : %p\n", header);
 
-    // Retourner le pointeur vers la mémoire après l'en-tête
-    return (void*)(header + 1);  // Le retour se fait après l'en-tête du bloc
-}
+//     // Retourner le pointeur vers la mémoire après l'en-tête
+//     return (void*)(header + 1);  // Le retour se fait après l'en-tête du bloc
+// }
 
 // Fonction pour allouer de la mémoire avec alignement
 void* my_malloc_align(size_t size) {
