@@ -23,6 +23,7 @@ void* my_malloc_align(size_t size);
 void my_free_simple(void *ptr);
 void my_free(void* ptr);
 void* align_memory(void* ptr, size_t alignment);
+void coalesce_blocks(BlockHeader* block);
 
 double measure_allocations(int num_allocations, size_t size, void* (*alloc_func)(size_t), void (*free_func)(void*));
 double measure_allocations_simple(int num_allocations, size_t size, void* (*alloc_func)(size_t), void (*free_func)(void*));

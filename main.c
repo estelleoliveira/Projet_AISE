@@ -73,7 +73,6 @@ int main() {
 
     printf("Mesures de performances:\n\n");
     const int n_allocations = 10000;
-    const int n;
 
     size_t block_size[] = {30, 70, size};
     for (int i=0;i<3; ++i){
