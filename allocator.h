@@ -10,19 +10,9 @@
 #define MAX_BLOCK_SIZE 1024
 #define ALIGNMENT 16
 
-#define SLAB_SIZE_8 64
-#define SLAB_SIZE_16 32
-#define SLAB_SIZE_32 16
-#define SLAB_SIZE_64 8
 
-// Slab to store blocks for small allocations
-typedef struct {
-    void* slabs[SLAB_SIZE_8];  // Slab for 8-byte allocations
-    void* slabs_16[SLAB_SIZE_16];  // Slab for 16-byte allocations
-    void* slabs_32[SLAB_SIZE_32];  // Slab for 32-byte allocations
-    void* slabs_64[SLAB_SIZE_64];  // Slab for 64-byte allocations
-} SlabAllocator;
 
+#define NUM_THREADS 5
 
 typedef struct BlockHeader {
     size_t size;                //taille du bloc
@@ -34,6 +24,11 @@ typedef struct {
     void* ptr;
     size_t size;
 } AllocRecord;
+
+typedef struct {
+    size_t size;      // Size for the memory allocation
+    long thread_id;   // Thread ID (or any other data you want to pass)
+} ThreadData;
 
 
 
@@ -47,6 +42,7 @@ void track_deallocation(void* ptr);
 void track_allocation(void* ptr, size_t size);
 void detect_leaks();
 void* multithread_malloc(size_t size);
+void* thread_function(void *arg);
 
 
 

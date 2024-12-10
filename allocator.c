@@ -139,7 +139,7 @@ void coalesce_blocks(BlockHeader* block){
 
 
 
-BlockHeader* get_free_block(size_t size) {
+BlockHeader* get_free_block(size_t size, int verbose) {
     int class_index;
     size_t class_size;
     class_index = get_class_index(size, &class_size);
@@ -163,7 +163,7 @@ BlockHeader* get_free_block(size_t size) {
         BlockHeader* block = free_lists[class_index];
         free_lists[class_index] = block->next;
         block->next = NULL;
-        printf("Free block found\n");
+        if (verbose) printf("Free block found\n");
         pthread_mutex_unlock(&free_list_mutex[class_index]);
         return block;  // S'assurer qu'il n'a plus de lien vers un autre bloc
     
@@ -176,7 +176,7 @@ void* my_malloc(size_t size, int verbose) {
     }
 
     size_t total_size = size + HEADER_SIZE;
-    BlockHeader* header = get_free_block(size);
+    BlockHeader* header = get_free_block(size, verbose);
     
     if (header == NULL) {
         if (verbose) {
@@ -330,4 +330,26 @@ void detect_leaks() {
     } else {
         printf("Pas de fuite mémoire détécté\n");
     }
+}
+
+void* thread_function(void* arg) {
+    // Cast the argument to ThreadData structure
+    ThreadData* data = (ThreadData*)arg;
+
+    size_t size = data->size;      // Memory size for allocation
+    long thread_id = data->thread_id; // Thread ID
+
+    // Perform memory allocation (using your custom allocator)
+    void* ptr = my_malloc(size,0);
+
+    // Print details (for demonstration purposes)
+    printf("Thread %ld allocated %zu bytes at %p\n", thread_id, size, ptr);
+
+    // Perform the free operation
+    my_free(ptr,0);
+
+    // Clean up the dynamically allocated memory for thread parameters
+    my_free(arg,1);  // Remember to free the memory allocated for ThreadData
+
+    return NULL;
 }
