@@ -25,10 +25,19 @@ typedef struct {
     size_t size;
 } AllocRecord;
 
+// typedef struct {
+//     size_t size;      // Size for the memory allocation
+//     long thread_id;   // Thread ID (or any other data you want to pass)
+// } ThreadData;
+
 typedef struct {
-    size_t size;      // Size for the memory allocation
-    long thread_id;   // Thread ID (or any other data you want to pass)
+    size_t size;
+    void* (*alloc_func)(size_t, int);
+    void (*free_func)(void*, int);
+    int verbose;
+    int num_allocations;
 } ThreadData;
+
 
 
 
@@ -48,7 +57,7 @@ void* thread_function(void *arg);
 
 double measure_allocations(int num_allocations, size_t size, void* (*alloc_func)(size_t,int), void (*free_func)(void*, int), int verbose);
 double measure_allocations_default(int num_allocations, size_t size, void* (*alloc_func)(size_t), void (*free_func)(void*));
-
+double measure_allocations_thread(int num_threads, int num_allocations, size_t size, void* (*alloc_func)(size_t, int), void (*free_func)(void*, int), int verbose);
 
 
 #endif

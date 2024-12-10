@@ -332,24 +332,82 @@ void detect_leaks() {
     }
 }
 
+// void* thread_function(void* arg) {
+//     // Cast the argument to ThreadData structure
+//     ThreadData* data = (ThreadData*)arg;
+
+//     size_t size = data->size;      // Memory size for allocation
+//     long thread_id = data->thread_id; // Thread ID
+
+//     // Perform memory allocation (using your custom allocator)
+//     void* ptr = my_malloc(size,0);
+
+//     // Print details (for demonstration purposes)
+//     printf("Thread %ld allocated %zu bytes at %p\n", thread_id, size, ptr);
+
+//     // Perform the free operation
+//     my_free(ptr,0);
+
+//     // Clean up the dynamically allocated memory for thread parameters
+//     my_free(arg,1);  // Remember to free the memory allocated for ThreadData
+
+//     return NULL;
+// }
+
 void* thread_function(void* arg) {
-    // Cast the argument to ThreadData structure
     ThreadData* data = (ThreadData*)arg;
+    void* ptrs[data->num_allocations];
 
-    size_t size = data->size;      // Memory size for allocation
-    long thread_id = data->thread_id; // Thread ID
+    // Perform allocations
+    for (int i = 0; i < data->num_allocations; i++) {
+        ptrs[i] = data->alloc_func(data->size, data->verbose);
+        if (ptrs[i] == NULL) {
+            perror("Allocation failed in thread");
+            return NULL;
+        }
+    }
 
-    // Perform memory allocation (using your custom allocator)
-    void* ptr = my_malloc(size,0);
-
-    // Print details (for demonstration purposes)
-    printf("Thread %ld allocated %zu bytes at %p\n", thread_id, size, ptr);
-
-    // Perform the free operation
-    my_free(ptr,0);
-
-    // Clean up the dynamically allocated memory for thread parameters
-    my_free(arg,1);  // Remember to free the memory allocated for ThreadData
+    // Perform deallocations
+    for (int i = 0; i < data->num_allocations; i++) {
+        data->free_func(ptrs[i], data->verbose);
+    }
 
     return NULL;
+}
+
+
+double measure_allocations_thread(int num_threads, int num_allocations, size_t size, void* (*alloc_func)(size_t, int), void (*free_func)(void*, int), int verbose) {
+    struct timeval start, end;
+    pthread_t threads[num_threads];
+    ThreadData thread_data[num_threads];
+
+    // Set up the thread data and create threads
+    for (int i = 0; i < num_threads; i++) {
+        thread_data[i].size = size;
+        thread_data[i].alloc_func = alloc_func;
+        thread_data[i].free_func = free_func;
+        thread_data[i].verbose = verbose;
+        thread_data[i].num_allocations = num_allocations;
+
+        // Create a thread to run the allocation and deallocation function
+        if (pthread_create(&threads[i], NULL, thread_function, (void*)&thread_data[i]) != 0) {
+            perror("Failed to create thread");
+            return -1.0;
+        }
+    }
+
+    // Start the timer before the threads begin
+    gettimeofday(&start, NULL);
+
+    // Wait for all threads to finish
+    for (int i = 0; i < num_threads; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    // Stop the timer after all threads are done
+    gettimeofday(&end, NULL);
+
+    // Calculate elapsed time in seconds
+    double elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
+    return elapsed_time;
 }

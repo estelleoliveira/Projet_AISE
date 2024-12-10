@@ -74,10 +74,12 @@ int main() {
   printf("Bloc 3 libéré avec succès.\n\n");
 
   printf("Mesures de performances:\n\n");
-  const int n_allocations = 10000;
+  const int n_allocations = 50000;
+  int n_threads = 4;
 
-  size_t block_size[] = {30, 70, size};
-  for (int i = 0; i < 3; ++i) {
+  const size_t array_size= 5;
+  size_t block_size[] = {30, 70, size, 125,230};
+  for (int i = 0; i < array_size; ++i) {
 
     double time_malloc =
         measure_allocations_default(n_allocations, block_size[i], malloc, free);
@@ -97,28 +99,16 @@ int main() {
         "taille %zu avec méthodes my_malloc() et my_free(), alloc/sec %lf \n",
         time_mmap, n_allocations, block_size[i],
         time_mmap / (double)n_allocations);
+
+     // Measure performance with my_malloc/my_free
+        double time_multithread = measure_allocations_thread(n_threads, n_allocations, block_size[i], my_malloc, my_free, 0);
+        if (time_multithread < 0) {
+            return 1;  // Return on error
+        }
+        printf("Temps: %lf pour l'allocation et libération de %d blocs mémoires de taille %zu avec méthodes my_malloc() et my_free() en multithreading, alloc/sec %lf \n",
+               time_multithread, n_allocations, block_size[i], time_multithread / (double)n_allocations);
   }
 
-  pthread_t threads[NUM_THREADS]; // Array to hold thread IDs
-
-  // Create multiple threads with different memory sizes
-  for (long i = 0; i < NUM_THREADS; i++) {
-    size_t *size = (size_t *)my_malloc(sizeof(size_t),1); // Allocate memory for size
-    *size = 128 + (i * 64); // Set a different size for each thread
-
-    // Create the thread and pass the size as an argument
-    if (pthread_create(&threads[i], NULL, thread_function, (void *)size) != 0) {
-      perror("Failed to create thread");
-      return 1;
-    }
-  }
-
-  // Wait for all threads to finish
-  for (long i = 0; i < NUM_THREADS; i++) {
-    pthread_join(threads[i], NULL);
-  }
-
-  printf("All threads have completed\n");
 
   return 0;
 }
