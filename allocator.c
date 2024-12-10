@@ -196,7 +196,7 @@ void* my_malloc(size_t size, int verbose) {
     void* aligned_ptr = align_memory((void*)(header + 1), ALIGNMENT);  // Alignement après l'en-tête
 
     header->size = total_size;
-    pthread_mutex_unlock((&alloc_mutex));
+    pthread_mutex_unlock(&alloc_mutex);
     return aligned_ptr;
 }
 
