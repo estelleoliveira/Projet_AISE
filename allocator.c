@@ -10,6 +10,8 @@
 //liste globale des blocs libres classés par tailles
 BlockHeader* free_lists[NUM_CLASSES] = {NULL};
 
+AllocRecord alloc_records[1000];
+int alloc_count = 0;
 
 
 /*Goulots d'étranglements:
@@ -175,6 +177,7 @@ void my_free(void* ptr) {
         printf("Libération d'un bloc NULL\n");
         return;
     }
+    track_deallocation(ptr);
 
     BlockHeader* header = (BlockHeader*)ptr - 1;
     //printf("Libération du bloc à l'adresse %p, taille %zu\n", header, header->size);  // Ajout pour le débogage
@@ -186,8 +189,6 @@ void my_free(void* ptr) {
         }
     }
 }
-
-    
 
 
 double measure_allocations(int num_allocations, size_t size, void* (*alloc_func)(size_t), void (*free_func)(void*)) {
@@ -219,7 +220,6 @@ double measure_allocations(int num_allocations, size_t size, void* (*alloc_func)
 
     // Calcul du temps écoulé en secondes
     double elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
-
     return elapsed_time;
 }
 
@@ -231,3 +231,32 @@ void* align_memory(void* ptr, size_t alignment) {
     return (void*)aligned_addr;
 }
 
+
+
+
+void track_allocation(void* ptr, size_t size) {
+    alloc_records[alloc_count].ptr = ptr;
+    alloc_records[alloc_count].size = size;
+    alloc_count++;
+}
+
+void track_deallocation(void* ptr) {
+    for (int i = 0; i < alloc_count; i++) {
+        if (alloc_records[i].ptr == ptr) {
+            alloc_records[i] = alloc_records[alloc_count - 1];
+            alloc_count--;
+            return;
+        }
+    }
+}
+
+void detect_leaks() {
+    if (alloc_count > 0) {
+        printf("Fuite détectée!\n");
+        for (int i = 0; i < alloc_count; i++) {
+            printf("Fuite de bloc %p de taille %zu\n", alloc_records[i].ptr, alloc_records[i].size);
+        }
+    } else {
+        printf("Pas de fuite mémoire détécté\n");
+    }
+}

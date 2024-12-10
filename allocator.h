@@ -15,6 +15,12 @@ typedef struct BlockHeader {
     struct BlockHeader* next;   //pointeur vers le prochain bloc libre
 } BlockHeader;
 
+// traquer l'allocation des pointeurs pour éviter les memoery leaks
+typedef struct {
+    void* ptr;
+    size_t size;
+} AllocRecord;
+
 int get_class_index(size_t size, size_t* class_size);
 
 void* my_malloc(size_t size);
@@ -24,6 +30,10 @@ void my_free_simple(void *ptr);
 void my_free(void* ptr);
 void* align_memory(void* ptr, size_t alignment);
 void coalesce_blocks(BlockHeader* block);
+void track_deallocation(void* ptr);
+void track_allocation(void* ptr, size_t size);
+void detect_leaks();
+
 
 double measure_allocations(int num_allocations, size_t size, void* (*alloc_func)(size_t), void (*free_func)(void*));
 double measure_allocations_simple(int num_allocations, size_t size, void* (*alloc_func)(size_t), void (*free_func)(void*));
