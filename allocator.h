@@ -2,12 +2,26 @@
 #define ALLOCATOR_H
 
 #include <stddef.h> //pour size_t
+#include <pthread.h>
 
 #define HEADER_SIZE sizeof(BlockHeader)
 #define NUM_CLASSES 10
 #define MIN_BLOCK_SIZE 16
 #define MAX_BLOCK_SIZE 1024
 #define ALIGNMENT 16
+
+#define SLAB_SIZE_8 64
+#define SLAB_SIZE_16 32
+#define SLAB_SIZE_32 16
+#define SLAB_SIZE_64 8
+
+// Slab to store blocks for small allocations
+typedef struct {
+    void* slabs[SLAB_SIZE_8];  // Slab for 8-byte allocations
+    void* slabs_16[SLAB_SIZE_16];  // Slab for 16-byte allocations
+    void* slabs_32[SLAB_SIZE_32];  // Slab for 32-byte allocations
+    void* slabs_64[SLAB_SIZE_64];  // Slab for 64-byte allocations
+} SlabAllocator;
 
 
 typedef struct BlockHeader {
@@ -20,6 +34,8 @@ typedef struct {
     void* ptr;
     size_t size;
 } AllocRecord;
+
+
 
 int get_class_index(size_t size, size_t* class_size);
 
