@@ -25,7 +25,7 @@ int main() {
     printf("Allocation d'un bloc de %zu octets...\n", size);
     printf("Classe sélectionnée : %d (Taille de classe : %zu octets)\n", class_index, class_size);
     printf("Test\n");
-    void* ptr1= my_malloc(size);
+    void* ptr1= my_malloc(size, 1);
     if (ptr1) {
         printf("Bloc alloué à l'adresse : %p\n", ptr1);
         strcpy((char*)ptr1, "Hello, world!");
@@ -33,7 +33,7 @@ int main() {
     }
 
     printf("Libération du bloc...\n");
-    my_free(ptr1);
+    my_free(ptr1,1);
     printf("Bloc 1 libéré avec succès.\n\n");
 
 
@@ -41,7 +41,7 @@ int main() {
     class_index = get_class_index(size, &class_size);
     printf("Allocation d'un bloc de %zu octets...\n", size);
     printf("Classe sélectionnée : %d (Taille de classe : %zu octets)\n", class_index, class_size);
-    void* ptr2= my_malloc(size);
+    void* ptr2= my_malloc(size,1);
     if (ptr2) {
         printf("Bloc alloué à l'adresse : %p\n", ptr2);
         strcpy((char*)ptr2, "Hello, world!");
@@ -49,7 +49,7 @@ int main() {
     }
 
     printf("Libération du bloc...\n");
-    my_free(ptr2);
+    my_free(ptr2,1);
     printf("Bloc 2 libéré avec succès.\n\n");
 
     srand((unsigned int)time(NULL));    //permet de ne pas avoir toujours la même valeur généré
@@ -60,7 +60,7 @@ int main() {
     printf("Allocation d'un bloc de %zu octets...\n", size);
     printf("Classe sélectionnée : %d (Taille de classe : %zu octets)\n", class_index, class_size);
     //My_alloc crashes when size < 128 and >64
-    void* ptr3= my_malloc(size);
+    void* ptr3= my_malloc(size, 1);
     if (ptr3) {
         printf("Bloc alloué à l'adresse : %p\n", ptr3);
         strcpy((char*)ptr3, "Hello, world!");
@@ -68,7 +68,7 @@ int main() {
     }
 
     printf("Libération du bloc...\n");
-    my_free(ptr3);
+    my_free(ptr3,1);
     printf("Bloc 3 libéré avec succès.\n\n");
 
     printf("Mesures de performances:\n\n");
@@ -77,11 +77,11 @@ int main() {
     size_t block_size[] = {30, 70, size};
     for (int i=0;i<3; ++i){
 
-        double time_malloc = measure_allocations(n_allocations, block_size[i], malloc, free);
+        double time_malloc = measure_allocations_default(n_allocations, block_size[i], malloc, free);
         if (time_malloc<0) return 1;
         printf("Temps: %lf pour l'allocation et libération de %d blocs mémoires de taille %zu avec méthodes malloc() et free(), alloc/sec %lf \n", time_malloc, n_allocations, block_size[i], time_malloc/ (double)n_allocations );
 
-        double time_mmap = measure_allocations(n_allocations, block_size[i], my_malloc, my_free);
+        double time_mmap = measure_allocations(n_allocations, block_size[i], my_malloc, my_free, 0);
         if (time_mmap<0) return 1;
         printf("Temps: %lf pour l'allocation et libération de %d blocs mémoires de taille %zu avec méthodes my_malloc() et my_free(), alloc/sec %lf \n", time_mmap, n_allocations, block_size[i], time_mmap/ (double)n_allocations );
 

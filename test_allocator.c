@@ -9,28 +9,28 @@
 
 static void test_allocation_and_free(void **state) {
     (void)state;
-    void* ptr = my_malloc(64);
+    void* ptr = my_malloc(64,1);
     assert(ptr != NULL);
     strcpy((char*)ptr, "Hello Allocator!");
     assert(strcmp((char*)ptr, "Hello Allocator!") == 0);
-    my_free(ptr);
+    my_free(ptr, 0);
 }
 
 static void test_reuse_after_free(void **state) {
     (void)state;
-    void* ptr1 = my_malloc(64);
-    my_free(ptr1);
-    void* ptr2 = my_malloc(64);
+    void* ptr1 = my_malloc(64,1);
+    my_free(ptr1,1);
+    void* ptr2 = my_malloc(64,1);
     assert_ptr_equal(ptr1, ptr2); //vérifie que la mémoire est réutilisée
 }
 
 static void test_different_sizes(void **state) {
     (void)state;
-    void* ptr1 = my_malloc(32);  //classe 32
-    void* ptr2 = my_malloc(128); //classe 128
+    void* ptr1 = my_malloc(32,1);  //classe 32
+    void* ptr2 = my_malloc(128,1); //classe 128
     assert_ptr_not_equal(ptr1, ptr2);        //vérifie que les adresses sont différentes
-    my_free(ptr1);
-    my_free(ptr2);
+    my_free(ptr1,1);
+    my_free(ptr2,1);
 }
 
 int main() {

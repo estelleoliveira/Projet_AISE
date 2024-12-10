@@ -29,15 +29,19 @@ Verification des erreurs à chaque appel même si les erreurs sont rares
 
 */
 
-//A REPARER
-int recycle_block(BlockHeader* block){
-    if (!block){
-        printf("Block null");
+
+int recycle_block(BlockHeader* block, int verbose) {
+    if (!block) {
+        if (verbose) {
+            printf("Block null\n");
+        }
         return -1;
     }
 
     if (block->next || block->size == 0) {
-        printf("Erreur : tentative de recycler un bloc corrompu ou déjà libéré\n");
+        if (verbose) {
+            printf("Erreur : tentative de recycler un bloc corrompu ou déjà libéré\n");
+        }
         return -1;
     }
     
@@ -45,19 +49,27 @@ int recycle_block(BlockHeader* block){
     int class_index;
     size_t class_size;
     class_index = get_class_index(block->size - HEADER_SIZE, &class_size);
-    if (class_index==-1) {
-        printf("Invalid index for block recycling!\n");  
+    if (class_index == -1) {
+        if (verbose) {
+            printf("Invalid index for block recycling!\n");
+        }
         return -1;
     }
 
     pthread_mutex_lock(&free_list_mutex[class_index]);
 
+    block->next = free_lists[class_index];
+    free_lists[class_index] = block;
 
-    block->next =free_lists[class_index];
-    free_lists[class_index] =block;
     pthread_mutex_unlock(&free_list_mutex[class_index]);
+
+    if (verbose) {
+        printf("Block recycled at address %p\n", block);
+    }
+
     return 0;
 }
+
 
 //trouver la classe de taille pour une taille donnée
 int get_class_index(size_t size, size_t* class_size) {
@@ -146,92 +158,112 @@ BlockHeader* get_free_block(size_t size) {
         pthread_mutex_unlock(&free_list_mutex[class_index]);
         return NULL;
     }
-    //  Récupérer le premier bloc de la liste pour cette classe
+    //  Récupérer le premier bloc de la liste pour cette classe 
         // Enlever le premier bloc de la liste
         BlockHeader* block = free_lists[class_index];
         free_lists[class_index] = block->next;
         block->next = NULL;
-        printf("Free block found");
+        printf("Free block found\n");
         pthread_mutex_unlock(&free_list_mutex[class_index]);
         return block;  // S'assurer qu'il n'a plus de lien vers un autre bloc
     
 }
 
-void* my_malloc(size_t size) {
-
-    printf("Tentative d'allocation de %zu octets\n", size);
-
-    size_t total_size = size + HEADER_SIZE;
-    BlockHeader* header = get_free_block(size);
-    
-    if (header==NULL) {
-        printf("Aucun bloc libre trouvé, allocation via mmap\n");
-        header = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS , -1, 0);
-        if (header == MAP_FAILED) {
-            perror("mmap failed");
-            return NULL;
-        }
-        printf("Bloc alloué avec mmap à l'adresse : %p\n", header);  // Ajout pour le débogage
-    }
-    void* aligned_ptr = align_memory((void*)(header + 1), ALIGNMENT);  // Alignement après l'en-tête
-
-    header->size = total_size;
-    return aligned_ptr;
-
-}
-
-void* multithread_malloc(size_t size) {
+void* my_malloc(size_t size, int verbose) {
     pthread_mutex_lock(&alloc_mutex);
+    if (verbose) {
+        printf("Tentative d'allocation de %zu octets\n", size);
+    }
 
-    printf("Tentative d'allocation de %zu octets\n", size);
-
-    
-    
     size_t total_size = size + HEADER_SIZE;
     BlockHeader* header = get_free_block(size);
     
-    if (header==NULL) {
-        printf("Aucun bloc libre trouvé, allocation via mmap\n");
+    if (header == NULL) {
+        if (verbose) {
+            printf("Aucun bloc libre trouvé, allocation via mmap\n");
+        }
         header = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS , -1, 0);
         if (header == MAP_FAILED) {
             perror("mmap failed");
             pthread_mutex_unlock(&alloc_mutex);
             return NULL;
         }
-        printf("Bloc alloué avec mmap à l'adresse : %p\n", header);  // Ajout pour le débogage
+        if (verbose) {
+            printf("Bloc alloué avec mmap à l'adresse : %p\n", header);
+        }
     }
+
     void* aligned_ptr = align_memory((void*)(header + 1), ALIGNMENT);  // Alignement après l'en-tête
 
     header->size = total_size;
     pthread_mutex_unlock((&alloc_mutex));
-    
     return aligned_ptr;
 }
 
 
-void my_free(void* ptr) {
+void my_free(void* ptr, int verbose) {
     if (ptr == NULL) {
-        printf("Libération d'un bloc NULL\n");
+        if (verbose) {
+            printf("Libération d'un bloc NULL\n");
+        }
         return;
     }
+
     pthread_mutex_lock(&alloc_mutex);
 
     track_deallocation(ptr);
 
     BlockHeader* header = (BlockHeader*)ptr - 1;
-    //printf("Libération du bloc à l'adresse %p, taille %zu\n", header, header->size);  // Ajout pour le débogage
-   // coalesce_blocks(header);
-    //RECYCLE block is broken
-    if (recycle_block(header) == -1) {
+
+    if (verbose) {
+        printf("Libération du bloc à l'adresse %p, taille %zu\n", header, header->size);
+    }
+
+    if (recycle_block(header,verbose) == -1) {
         if (munmap(header, header->size) == -1) {
-        perror("munmap failed");
+            perror("munmap failed");
         }
     }
+
     pthread_mutex_unlock(&alloc_mutex);
 }
 
 
-double measure_allocations(int num_allocations, size_t size, void* (*alloc_func)(size_t), void (*free_func)(void*)) {
+
+double measure_allocations(int num_allocations, size_t size, void* (*alloc_func)(size_t,int), void (*free_func)(void* , int), int verbose) {
+    struct timeval start, end;
+    void* ptrs[num_allocations];
+
+    // Démarre le chronomètre
+    gettimeofday(&start, NULL);
+
+    // Allocation
+    for (int i = 0; i < num_allocations; i++) {
+        //printf("Allocation #%d de taille %zu\n", i + 1, size);
+        ptrs[i] = alloc_func(size, verbose);
+        if (ptrs[i] == NULL) {
+            perror("Allocation failed");
+            return -1.0;
+        }
+        //printf("Bloc alloué à l'adresse %p\n", ptrs[i]);  // Affiche l'adresse allouée
+    }
+
+    // Libération
+    for (int i = 0; i < num_allocations; i++) {
+        //printf("Libération du bloc à l'adresse %p\n", ptrs[i]);
+        free_func(ptrs[i], verbose);
+    }
+
+    // Arrête le chronomètre
+    gettimeofday(&end, NULL);
+
+    // Calcul du temps écoulé en secondes
+    double elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
+    return elapsed_time;
+}
+
+//Cette fonction existe car malloc a un seul argument tandis que my_alloc en a deux (+verbose)
+double measure_allocations_default(int num_allocations, size_t size, void* (*alloc_func)(size_t), void (*free_func)(void* )) {
     struct timeval start, end;
     void* ptrs[num_allocations];
 
@@ -262,6 +294,7 @@ double measure_allocations(int num_allocations, size_t size, void* (*alloc_func)
     double elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
     return elapsed_time;
 }
+
 
 
 // Fonction pour ajuster l'adresse à l'alignement souhaité

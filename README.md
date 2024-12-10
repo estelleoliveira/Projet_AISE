@@ -12,3 +12,6 @@ Le programme va aller chercher un bloc de taille 2^k avec k qui augmente tant qu
 - Alignement des blocs
 - coalescence des blocs
 - Prends le bloc le plus adapté
+- Recyclage des blocs
+- Multithreading
+- Traqueur de fuites mémoires

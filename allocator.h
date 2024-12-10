@@ -38,21 +38,20 @@ typedef struct {
 
 
 int get_class_index(size_t size, size_t* class_size);
-
-void* my_malloc(size_t size);
-void* my_malloc_simple(size_t size);
-void* my_malloc_align(size_t size);
-void my_free_simple(void *ptr);
-void my_free(void* ptr);
+int recycle_block(BlockHeader* block, int verbose);
+void* my_malloc(size_t size, int verbose );
+void my_free(void* ptr, int verbose);
 void* align_memory(void* ptr, size_t alignment);
 void coalesce_blocks(BlockHeader* block);
 void track_deallocation(void* ptr);
 void track_allocation(void* ptr, size_t size);
 void detect_leaks();
+void* multithread_malloc(size_t size);
 
 
-double measure_allocations(int num_allocations, size_t size, void* (*alloc_func)(size_t), void (*free_func)(void*));
-double measure_allocations_simple(int num_allocations, size_t size, void* (*alloc_func)(size_t), void (*free_func)(void*));
+
+double measure_allocations(int num_allocations, size_t size, void* (*alloc_func)(size_t,int), void (*free_func)(void*, int), int verbose);
+double measure_allocations_default(int num_allocations, size_t size, void* (*alloc_func)(size_t), void (*free_func)(void*));
 
 
 
