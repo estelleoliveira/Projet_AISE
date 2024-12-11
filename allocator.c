@@ -129,7 +129,8 @@ int get_class_index(size_t size, size_t* class_size) {
     return index;
 }
 
-//recherche le meilleur bloc libre 
+//recherche le meilleur bloc libre
+//Cette fonction n'est pas utilisé car elle n'est pas optimisé, temps de recherche trop long
 BlockHeader* get_best_fit_block(size_t size, int verbose) {
     // printf("Getting best fit block...");
     int class_index;
