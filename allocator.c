@@ -109,6 +109,7 @@ int recycle_block_thread(BlockHeader* block, int verbose) {
 }
 
 
+
 //trouver la classe de taille pour une taille donnée
 int get_class_index(size_t size, size_t* class_size) {
     int index = 0;
@@ -399,7 +400,7 @@ double measure_allocations_default(int num_allocations, size_t size, void* (*all
             perror("Allocation failed");
             return -1.0;
         }
-        //printf("Bloc alloué à l'adresse %p\n", ptrs[i]);  // Affiche l'adresse allouée
+        // printf("Bloc alloué à l'adresse %p\n", ptrs[i]);  // Affiche l'adresse allouée
     }
 
     // Libération
@@ -453,69 +454,13 @@ void detect_leaks() {
     }
 }
 
-// void* thread_function(void* arg) {
-//     ThreadData* data = (ThreadData*)arg;
-//     void* ptrs[data->num_allocations];
 
-//     // Perform allocations
-//     for (int i = 0; i < data->num_allocations; i++) {
-//         ptrs[i] = data->alloc_func(data->size, data->verbose);
-//         if (ptrs[i] == NULL) {
-//             perror("Allocation failed in thread");
-//             return NULL;
-//         }
-//     }
-
-//     // Perform deallocations
-//     for (int i = 0; i < data->num_allocations; i++) {
-//         data->free_func(ptrs[i], data->verbose);
-//     }
-
-//     return NULL;
-// }
-
-
-// double measure_allocations_thread(int num_threads, int num_allocations, size_t size, void* (*alloc_func)(size_t, int), void (*free_func)(void*, int), int verbose) {
-//     struct timeval start, end;
-//     pthread_t threads[num_threads];
-//     ThreadData thread_data[num_threads];
-
-//     // Set up the thread data and create threads
-//     for (int i = 0; i < num_threads; i++) {
-//         thread_data[i].size = size;
-//         thread_data[i].alloc_func = alloc_func;
-//         thread_data[i].free_func = free_func;
-//         thread_data[i].verbose = verbose;
-//         thread_data[i].num_allocations = num_allocations;
-
-//         // Create a thread to run the allocation and deallocation function
-//         if (pthread_create(&threads[i], NULL, thread_function, (void*)&thread_data[i]) != 0) {
-//             perror("Failed to create thread");
-//             return -1.0;
-//         }
-//     }
-
-//     // Start the timer before the threads begin
-//     gettimeofday(&start, NULL);
-
-//     // Wait for all threads to finish
-//     for (int i = 0; i < num_threads; i++) {
-//         pthread_join(threads[i], NULL);
-//     }
-
-//     // Stop the timer after all threads are done
-//     gettimeofday(&end, NULL);
-
-//     // Calculate elapsed time in seconds
-//     double elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
-//     return elapsed_time;
-// }
 
 void* thread_function(void* arg) {
     ThreadData* data = (ThreadData*)arg;
     void* ptrs[data->num_allocations];
 
-    // Perform allocations
+    // Allocation
     for (int i = 0; i < data->num_allocations; i++) {
         ptrs[i] = data->alloc_func(data->size, data->verbose);
         if (ptrs[i] == NULL) {
@@ -524,7 +469,7 @@ void* thread_function(void* arg) {
         }
     }
 
-    // Perform deallocations
+    // Desalloc
     for (int i = 0; i < data->num_allocations; i++) {
         data->free_func(ptrs[i], data->verbose);
     }
@@ -532,13 +477,13 @@ void* thread_function(void* arg) {
     return NULL;
 }
 
-// Optimized measure function with a fixed number of threads
+// Optimisé pour le multithreading
 double measure_allocations_thread(int num_threads, int num_allocations, size_t size, void* (*alloc_func)(size_t, int), void (*free_func)(void*, int), int verbose) {
     struct timeval start, end;
     pthread_t threads[num_threads];
     ThreadData thread_data[num_threads];
 
-    // Distribute the total number of allocations across threads
+    //Distribution égale du travail à travers les threads
     int allocations_per_thread = num_allocations / num_threads;
 
     // Set up the thread data and create threads
@@ -549,25 +494,25 @@ double measure_allocations_thread(int num_threads, int num_allocations, size_t s
         thread_data[i].verbose = verbose;
         thread_data[i].num_allocations = allocations_per_thread;
 
-        // Create a thread to run the allocation and deallocation function
+        // Thread qui créer les threads
         if (pthread_create(&threads[i], NULL, thread_function, (void*)&thread_data[i]) != 0) {
             perror("Failed to create thread");
             return -1.0;
         }
     }
 
-    // Start the timer before the threads begin
+    
     gettimeofday(&start, NULL);
 
-    // Wait for all threads to finish
+    // Attendre qque toutes les threads aient terminé
     for (int i = 0; i < num_threads; i++) {
         pthread_join(threads[i], NULL);
     }
 
-    // Stop the timer after all threads are done
+
     gettimeofday(&end, NULL);
 
-    // Calculate elapsed time in seconds
+
     double elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
     return elapsed_time;
 }

@@ -44,7 +44,7 @@ typedef struct {
 int get_class_index(size_t size, size_t* class_size);
 int recycle_block(BlockHeader* block, int verbose);
 int recycle_block_thread(BlockHeader* block, int verbose);
-
+BlockHeader* get_best_fit_block(size_t size, int verbose);
 void* my_malloc(size_t size, int verbose );
 void* my_malloc_thread(size_t size, int verbose );
 void my_free(void* ptr, int verbose);

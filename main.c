@@ -86,9 +86,9 @@ int main() {
     if (time_malloc < 0)
       return 1;
     printf("Temps: %lf pour l'allocation et libération de %d blocs mémoires de "
-           "taille %zu avec méthodes malloc() et free(), seconds per alloc: %lf \n",
+           "taille %zu avec méthodes malloc() et free(), seconds per 1000 alloc: %lf \n",
            time_malloc, n_allocations, block_size[i],
-           time_malloc / (double)n_allocations);
+           time_malloc*1000.0 / (double)n_allocations);
 
     double time_mmap = measure_allocations(n_allocations, block_size[i],
                                            my_malloc, my_free, 0);
@@ -96,17 +96,17 @@ int main() {
       return 1;
     printf(
         "Temps: %lf pour l'allocation et libération de %d blocs mémoires de "
-        "taille %zu avec méthodes my_malloc() et my_free(), seconds per alloc: %lf \n",
+        "taille %zu avec méthodes my_malloc() et my_free(), seconds per 1000 alloc: %lf \n",
         time_mmap, n_allocations, block_size[i],
-        time_mmap / (double)n_allocations);
+        time_mmap*1000.0 / (double)n_allocations);
 
      // Measure performance with my_malloc/my_free
         double time_multithread = measure_allocations_thread(n_threads, n_allocations, block_size[i], my_malloc_thread, my_free_thread, 0);
         if (time_multithread < 0) {
             return 1;  // Return on error
         }
-        printf("Temps: %lf pour l'allocation et libération de %d blocs mémoires de taille %zu avec méthodes my_malloc_thread() et my_free_thread() en multithreading, seconds per alloc: %lf \n",
-               time_multithread, n_allocations, block_size[i], time_multithread / (double)n_allocations);
+        printf("Temps: %lf pour l'allocation et libération de %d blocs mémoires de taille %zu avec méthodes my_malloc_thread() et my_free_thread() en multithreading, seconds per 1000 alloc: %lf \n",
+               time_multithread, n_allocations, block_size[i], time_multithread*100.0 / (double)n_allocations);
   }
 
   return 0;
