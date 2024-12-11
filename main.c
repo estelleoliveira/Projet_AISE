@@ -78,7 +78,7 @@ int main() {
   int n_threads = 4;
 
   const size_t array_size= 5;
-  size_t block_size[] = {30, 70, size, 125,230};
+  size_t block_size[] = {10,30, 70, 125,230};
   for (int i = 0; i < array_size; ++i) {
 
     double time_malloc =
