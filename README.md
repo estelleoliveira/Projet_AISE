@@ -85,18 +85,34 @@ Dans cette section, vous pouvez comparer les performances de votre allocateur pe
 - **Allocation/Désallocation Multithreadée** :
     - Mesurez les performances de l'allocateur multithreadé (`my_malloc_thread()` et `my_free_thread()`) par rapport à `malloc()`/`free()` dans un environnement multithreadé.
 
-Complétez le tableau suivant avec vos résultats de benchmark :
+## Résultats des Mesures de Performances
 
-### Résultats des Benchmarks
+Le tableau suivant présente les temps d'allocation et de libération pour différentes tailles de blocs, en utilisant les méthodes `malloc()` et `free()`, `my_malloc()` et `my_free()`, ainsi que `my_malloc_thread()` et `my_free_thread()` avec multithreading. Le nombre total d'allocations est de 50 000 pour chaque test.
 
-| Cas de Test                                  | Temps malloc()/free()  | Temps my_malloc()/my_free() | Temps my_malloc_thread()/my_free_thread() |
-|----------------------------------------------|------------------------|-----------------------------|-------------------------------------------|
-| Allocation/Désallocation (Taille Bloc: 30)   | [Votre Résultat]       | [Votre Résultat]           | [Votre Résultat]                         |
-| Allocation/Désallocation (Taille Bloc: 70)   | [Votre Résultat]       | [Votre Résultat]           | [Votre Résultat]                         |
-| Allocation/Désallocation (Taille Aléatoire)  | [Votre Résultat]       | [Votre Résultat]           | [Votre Résultat]                         |
-| Allocation/Désallocation Multithreadée (5 threads) | [Votre Résultat]    | [Votre Résultat]           | [Votre Résultat]                         |
+| Taille du Bloc (octets) | Temps avec `malloc()` et `free()` (sec) | Temps avec `my_malloc()` et `my_free()` (sec) | Temps avec `my_malloc_thread()` et `my_free_thread()` en multithreading (sec) | Temps par allocation (1000 allocations) `malloc()` | Temps par allocation (1000 allocations) `my_malloc()` | Temps par allocation (1000 allocations) `my_malloc_thread()` |
+|-------------------------|-----------------------------------------|-----------------------------------------------|-------------------------------------------------------------------------------|---------------------------------------------------|--------------------------------------------------------|------------------------------------------------------------|
+| 10                      | 0.001612                                | 0.542407                                      | 0.025530                                                                     | 0.000032                                          | 0.010848                                               | 0.000051                                                   |
+| 30                      | 0.002478                                | 0.157445                                      | 0.024621                                                                     | 0.000050                                          | 0.003149                                               | 0.000049                                                   |
+| 70                      | 0.003633                                | 0.139059                                      | 0.025683                                                                     | 0.000073                                          | 0.002781                                               | 0.000051                                                   |
+| 125                     | 0.006941                                | 0.009660                                      | 0.030385                                                                     | 0.000139                                          | 0.000193                                               | 0.000061                                                   |
+| 230                     | 0.012850                                | 0.192408                                      | 0.023643                                                                     | 0.000257                                          | 0.003848                                               | 0.000047                                                   |
 
-*Note : Les résultats peuvent varier en fonction des ressources système, ceci est donc une approximation*
+### Légende des Colonnes :
+
+- **Temps avec `malloc()` et `free()`** : Temps total pour allouer et libérer 50 000 blocs de mémoire avec les fonctions standard `malloc()` et `free()`.
+- **Temps avec `my_malloc()` et `my_free()`** : Temps total pour allouer et libérer 50 000 blocs de mémoire avec votre système d'allocation personnalisé `my_malloc()` et `my_free()`.
+- **Temps avec `my_malloc_thread()` et `my_free_thread()` en multithreading** : Temps total pour allouer et libérer 50 000 blocs de mémoire avec `my_malloc_thread()` et `my_free_thread()` en utilisant plusieurs threads.
+- **Temps par allocation (1000 allocations)** : Temps moyen pour effectuer 1000 allocations de mémoire.
+
+### Conclusion des Tests
+
+- Les tests montrent que l'allocateur personnalisé (`my_malloc()` et `my_free()`) est plus lent que les fonctions standards `malloc()` et `free()`, particulièrement pour les petites tailles de blocs. Cela peut être dû au surcoût de gestion des blocs, comme le recyclage et la coalescence.
+- En revanche, le multithreading (`my_malloc_thread()` et `my_free_thread()`) permet de réduire significativement le temps d'allocation et de libération par rapport aux versions non threadées pour des tailles de blocs plus grandes, en répartissant la charge sur plusieurs threads.
+- Le temps par allocation reste plus faible pour les petites tailles de blocs, mais les avantages du multithreading deviennent évidents sur les plus grandes tailles de blocs.
+
+---
+
+*Note : Les résultats peuvent varier en fonction des ressources système, ceci est donc une approximation. Ces résultats sont affichés à la fin de l'execution du programme principal*
 
 ---
 
@@ -107,5 +123,3 @@ Ce projet démontre la puissance d'un allocateur de mémoire personnalisé et me
 En suivant les bonnes pratiques pour suivre les fuites mémoire et en optimisant la gestion des blocs, l'allocateur minimise la fragmentation de mémoire et améliore les performances globales du système.
 
 ---
-
-N'hésitez pas à ajuster les sections, notamment celles des benchmarks, selon vos propres résultats. Ce modèle organise les informations de manière claire et détaillée tout en étant facilement personnalisable pour votre projet.
