@@ -43,14 +43,17 @@ typedef struct {
 
 int get_class_index(size_t size, size_t* class_size);
 int recycle_block(BlockHeader* block, int verbose);
+int recycle_block_thread(BlockHeader* block, int verbose);
+
 void* my_malloc(size_t size, int verbose );
+void* my_malloc_thread(size_t size, int verbose );
 void my_free(void* ptr, int verbose);
+void my_free_thread(void* ptr, int verbose);
 void* align_memory(void* ptr, size_t alignment);
 void coalesce_blocks(BlockHeader* block);
 void track_deallocation(void* ptr);
 void track_allocation(void* ptr, size_t size);
 void detect_leaks();
-void* multithread_malloc(size_t size);
 void* thread_function(void *arg);
 
 

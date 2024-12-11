@@ -26,11 +26,49 @@ Chaque my_alloc() demande un changement de l'espace d'adressage
 Les petites allocations fragmentent la mémoire avec des segments disjoints
 Pas de réutilisation de blocs, chaque appel créer un nouveau bloc
 Verification des erreurs à chaque appel même si les erreurs sont rares
-
 */
 
 
 int recycle_block(BlockHeader* block, int verbose) {
+    if (!block) {
+        if (verbose) {
+            printf("Block null\n");
+        }
+        return -1;
+    }
+
+    if (block->next || block->size == 0) {
+        if (verbose) {
+            printf("Erreur : tentative de recycler un bloc corrompu ou déjà libéré\n");
+        }
+        return -1;
+    }
+    
+    coalesce_blocks(block);
+    int class_index;
+    size_t class_size;
+    class_index = get_class_index(block->size - HEADER_SIZE, &class_size);
+    if (class_index == -1) {
+        if (verbose) {
+            printf("Invalid index for block recycling!\n");
+        }
+        return -1;
+    }
+
+
+
+    block->next = free_lists[class_index];
+    free_lists[class_index] = block;
+
+
+    if (verbose) {
+        printf("Block recycled at address %p\n", block);
+    }
+
+    return 0;
+}
+
+int recycle_block_thread(BlockHeader* block, int verbose) {
     if (!block) {
         if (verbose) {
             printf("Block null\n");
@@ -90,11 +128,8 @@ int get_class_index(size_t size, size_t* class_size) {
     return index;
 }
 
-
-
-
 //recherche le meilleur bloc libre 
-BlockHeader* get_best_fit_block(size_t size) {
+BlockHeader* get_best_fit_block(size_t size, int verbose) {
     // printf("Getting best fit block...");
     int class_index;
     size_t class_size;
@@ -138,8 +173,36 @@ void coalesce_blocks(BlockHeader* block){
 }
 
 
-
 BlockHeader* get_free_block(size_t size, int verbose) {
+    int class_index;
+    size_t class_size;
+    class_index = get_class_index(size, &class_size);
+    
+    // Vérifier si l'index de classe est valide
+    if (class_index == -1) {
+        fprintf(stderr, "Erreur : index de classe invalide : %d\n", class_index);
+        return NULL;  // Retourner NULL si l'index est invalide
+    }
+    
+
+    // Vérifier que la liste des blocs pour cette classe est initialisée
+    if (!free_lists[class_index]) {
+        if (verbose) printf("Aucun bloc libre trouvé pour la taille %zu\n", size);
+        
+        return NULL;
+    }
+    //  Récupérer le premier bloc de la liste pour cette classe 
+        // Enlever le premier bloc de la liste
+        BlockHeader* block = free_lists[class_index];
+        free_lists[class_index] = block->next;
+        block->next = NULL;
+        if (verbose) printf("Free block found\n");
+        
+        return block;  // S'assurer qu'il n'a plus de lien vers un autre bloc
+    
+}
+
+BlockHeader* get_free_block_thread(size_t size, int verbose) {
     int class_index;
     size_t class_size;
     class_index = get_class_index(size, &class_size);
@@ -169,14 +232,48 @@ BlockHeader* get_free_block(size_t size, int verbose) {
     
 }
 
+
+
+
 void* my_malloc(size_t size, int verbose) {
-    pthread_mutex_lock(&alloc_mutex);
+    
     if (verbose) {
         printf("Tentative d'allocation de %zu octets\n", size);
     }
 
     size_t total_size = size + HEADER_SIZE;
     BlockHeader* header = get_free_block(size, verbose);
+    
+    if (header == NULL) {
+        if (verbose) {
+            printf("Aucun bloc libre trouvé, allocation via mmap\n");
+        }
+        header = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS , -1, 0);
+        if (header == MAP_FAILED) {
+            perror("mmap failed");
+            
+            return NULL;
+        }
+        if (verbose) {
+            printf("Bloc alloué avec mmap à l'adresse : %p\n", header);
+        }
+    }
+
+    void* aligned_ptr = align_memory((void*)(header + 1), ALIGNMENT);  // Alignement après l'en-tête
+
+    header->size = total_size;
+    
+    return aligned_ptr;
+}
+
+void* my_malloc_thread(size_t size, int verbose) {
+    pthread_mutex_lock(&alloc_mutex);
+    if (verbose) {
+        printf("Tentative d'allocation de %zu octets\n", size);
+    }
+
+    size_t total_size = size + HEADER_SIZE;
+    BlockHeader* header = get_free_block_thread(size, verbose);
     
     if (header == NULL) {
         if (verbose) {
@@ -200,8 +297,32 @@ void* my_malloc(size_t size, int verbose) {
     return aligned_ptr;
 }
 
-
 void my_free(void* ptr, int verbose) {
+    if (ptr == NULL) {
+        if (verbose) {
+            printf("Libération d'un bloc NULL\n");
+        }
+        return;
+    }
+
+    track_deallocation(ptr);
+
+    BlockHeader* header = (BlockHeader*)ptr - 1;
+
+    if (verbose) {
+        printf("Libération du bloc à l'adresse %p, taille %zu\n", header, header->size);
+    }
+
+    if (recycle_block(header,verbose) == -1) {
+        if (munmap(header, header->size) == -1) {
+            perror("munmap failed");
+        }
+    }
+
+    
+}
+
+void my_free_thread(void* ptr, int verbose) {
     if (ptr == NULL) {
         if (verbose) {
             printf("Libération d'un bloc NULL\n");
@@ -219,7 +340,7 @@ void my_free(void* ptr, int verbose) {
         printf("Libération du bloc à l'adresse %p, taille %zu\n", header, header->size);
     }
 
-    if (recycle_block(header,verbose) == -1) {
+    if (recycle_block_thread(header,verbose) == -1) {
         if (munmap(header, header->size) == -1) {
             perror("munmap failed");
         }
@@ -333,25 +454,61 @@ void detect_leaks() {
 }
 
 // void* thread_function(void* arg) {
-//     // Cast the argument to ThreadData structure
 //     ThreadData* data = (ThreadData*)arg;
+//     void* ptrs[data->num_allocations];
 
-//     size_t size = data->size;      // Memory size for allocation
-//     long thread_id = data->thread_id; // Thread ID
+//     // Perform allocations
+//     for (int i = 0; i < data->num_allocations; i++) {
+//         ptrs[i] = data->alloc_func(data->size, data->verbose);
+//         if (ptrs[i] == NULL) {
+//             perror("Allocation failed in thread");
+//             return NULL;
+//         }
+//     }
 
-//     // Perform memory allocation (using your custom allocator)
-//     void* ptr = my_malloc(size,0);
-
-//     // Print details (for demonstration purposes)
-//     printf("Thread %ld allocated %zu bytes at %p\n", thread_id, size, ptr);
-
-//     // Perform the free operation
-//     my_free(ptr,0);
-
-//     // Clean up the dynamically allocated memory for thread parameters
-//     my_free(arg,1);  // Remember to free the memory allocated for ThreadData
+//     // Perform deallocations
+//     for (int i = 0; i < data->num_allocations; i++) {
+//         data->free_func(ptrs[i], data->verbose);
+//     }
 
 //     return NULL;
+// }
+
+
+// double measure_allocations_thread(int num_threads, int num_allocations, size_t size, void* (*alloc_func)(size_t, int), void (*free_func)(void*, int), int verbose) {
+//     struct timeval start, end;
+//     pthread_t threads[num_threads];
+//     ThreadData thread_data[num_threads];
+
+//     // Set up the thread data and create threads
+//     for (int i = 0; i < num_threads; i++) {
+//         thread_data[i].size = size;
+//         thread_data[i].alloc_func = alloc_func;
+//         thread_data[i].free_func = free_func;
+//         thread_data[i].verbose = verbose;
+//         thread_data[i].num_allocations = num_allocations;
+
+//         // Create a thread to run the allocation and deallocation function
+//         if (pthread_create(&threads[i], NULL, thread_function, (void*)&thread_data[i]) != 0) {
+//             perror("Failed to create thread");
+//             return -1.0;
+//         }
+//     }
+
+//     // Start the timer before the threads begin
+//     gettimeofday(&start, NULL);
+
+//     // Wait for all threads to finish
+//     for (int i = 0; i < num_threads; i++) {
+//         pthread_join(threads[i], NULL);
+//     }
+
+//     // Stop the timer after all threads are done
+//     gettimeofday(&end, NULL);
+
+//     // Calculate elapsed time in seconds
+//     double elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
+//     return elapsed_time;
 // }
 
 void* thread_function(void* arg) {
@@ -375,11 +532,14 @@ void* thread_function(void* arg) {
     return NULL;
 }
 
-
+// Optimized measure function with a fixed number of threads
 double measure_allocations_thread(int num_threads, int num_allocations, size_t size, void* (*alloc_func)(size_t, int), void (*free_func)(void*, int), int verbose) {
     struct timeval start, end;
     pthread_t threads[num_threads];
     ThreadData thread_data[num_threads];
+
+    // Distribute the total number of allocations across threads
+    int allocations_per_thread = num_allocations / num_threads;
 
     // Set up the thread data and create threads
     for (int i = 0; i < num_threads; i++) {
@@ -387,7 +547,7 @@ double measure_allocations_thread(int num_threads, int num_allocations, size_t s
         thread_data[i].alloc_func = alloc_func;
         thread_data[i].free_func = free_func;
         thread_data[i].verbose = verbose;
-        thread_data[i].num_allocations = num_allocations;
+        thread_data[i].num_allocations = allocations_per_thread;
 
         // Create a thread to run the allocation and deallocation function
         if (pthread_create(&threads[i], NULL, thread_function, (void*)&thread_data[i]) != 0) {
