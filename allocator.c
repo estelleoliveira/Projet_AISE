@@ -548,6 +548,28 @@ void* thread_function(void* arg) {
 
     return NULL;
 }
+void* thread_random_function(void* arg) {
+    ThreadRandomData* data = (ThreadRandomData*)arg;
+    void* ptrs[data->num_allocations];
+
+    // Allocation
+    for (int i = 0; i < data->num_allocations; i++) {
+        data->size = data->min + rand() % (data->max - data->min + 1);
+        //printf("Taille : %ld\n", data->size); débogage
+        ptrs[i] = data->alloc_func(data->size, data->verbose);
+        if (ptrs[i] == NULL) {
+            perror("Allocation failed in thread");
+            return NULL;
+        }
+    }
+
+    // Desalloc
+    for (int i = 0; i < data->num_allocations; i++) {
+        data->free_func(ptrs[i], data->verbose);
+    }
+
+    return NULL;
+}
 
 // Optimisé pour le multithreading
 double measure_allocations_thread(int num_threads, int num_allocations, size_t size, void* (*alloc_func)(size_t, int), void (*free_func)(void*, int), int verbose) {
@@ -579,6 +601,45 @@ double measure_allocations_thread(int num_threads, int num_allocations, size_t s
     // Attendre qque toutes les threads aient terminé
     for (int i = 0; i < num_threads; i++) {
         pthread_join(threads[i], NULL);
+    }
+
+    gettimeofday(&end, NULL);
+    double elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
+    return elapsed_time;
+}
+
+
+double measure_allocations_thread_variable_size(int n_threads, int num_allocations, size_t min_random_size, size_t max_random_size, void* (*alloc_func)(size_t, int), void (*free_func)(void*, int), int verbose) {
+    struct timeval start, end;
+    pthread_t threads_random[n_threads];
+    ThreadRandomData thread_random_data[n_threads];
+
+    //Distribution égale du travail à travers les threads
+    int allocations_per_thread = num_allocations / n_threads;
+
+    // Set up the thread data and create threads
+    for (int i = 0; i < n_threads; i++) {
+        thread_random_data[i].max = max_random_size;
+        thread_random_data[i].min = min_random_size;
+
+        thread_random_data[i].alloc_func = alloc_func;
+        thread_random_data[i].free_func = free_func;
+        thread_random_data[i].verbose = verbose;
+        thread_random_data[i].num_allocations = allocations_per_thread;
+
+        // Thread qui créer les threads
+        if (pthread_create(&threads_random[i], NULL, thread_random_function, (void*)&thread_random_data[i]) != 0) {
+            perror("Failed to create thread");
+            return -1.0;
+        }
+    }
+
+    
+    gettimeofday(&start, NULL);
+
+    // Attendre qque toutes les threads aient terminé
+    for (int i = 0; i < n_threads; i++) {
+        pthread_join(threads_random[i], NULL);
     }
 
 

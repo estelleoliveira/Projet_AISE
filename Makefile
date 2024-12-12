@@ -3,7 +3,7 @@ all : prog test_allocator
 
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -Wpedantic -pthread  
+CFLAGS = -g -Wall -Wextra -Wpedantic -pthread  
 
 # Build the main program
 prog : main.c allocator.c allocator.h

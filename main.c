@@ -135,7 +135,8 @@ int main() {
   printf("\nMesures de performances avec tailles variables : \n\n");
   const size_t min_random_size = 1;
   const size_t max_random_size = 250;
-  const int nb_allocations = 500000;
+  const int nb_allocations = 50000;
+  n_threads = 2;
 
   double time_malloc_random = measure_allocations_default_variable_size(nb_allocations, min_random_size, max_random_size, malloc, free);
   if (time_malloc_random < 0) {return 1;}
@@ -152,9 +153,9 @@ int main() {
          time_my_malloc_random, nb_allocations, time_my_malloc_random * 1000.0 / (double)nb_allocations);
 
   
-  double time_multithread_random = measure_allocations_thread_variable_size(n_threads, n_allocations, min_random_size, max_random_size, my_malloc_thread, my_free_thread, 0);
+  double time_multithread_random = measure_allocations_thread_variable_size(n_threads, nb_allocations, min_random_size, max_random_size, my_malloc_thread, my_free_thread, 0);
     if (time_multithread_random < 0) {
-        return 1;  // Return on error
+        return 1;
     }
     printf("Temps: %lf pour l'allocation et libération de %d blocs mémoires de taille variables avec méthodes my_malloc_thread() et my_free_thread() en multithreading, seconds per 1000 alloc: %lf \n",
             time_multithread_random, nb_allocations, time_multithread_random*1000.0 / (double)nb_allocations);
