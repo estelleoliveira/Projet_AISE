@@ -75,7 +75,7 @@ int main() {
 
   printf("Mesures de performances:\n\n");
   const int n_allocations = 50000;
-  int n_threads = 4;
+  int n_threads = 5;
 
   const size_t array_size= 5;
   size_t block_size[] = {10,30, 70, 125,230};
@@ -106,7 +106,7 @@ int main() {
             return 1;  // Return on error
         }
         printf("Temps: %lf pour l'allocation et libération de %d blocs mémoires de taille %zu avec méthodes my_malloc_thread() et my_free_thread() en multithreading, seconds per 1000 alloc: %lf \n",
-               time_multithread, n_allocations, block_size[i], time_multithread*100.0 / (double)n_allocations);
+               time_multithread, n_allocations, block_size[i], time_multithread*1000.0 / (double)n_allocations);
   }
 
   return 0;

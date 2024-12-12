@@ -84,31 +84,30 @@ Dans cette section, vous pouvez comparer les performances de votre allocateur pe
 
 - **Allocation/Désallocation Multithreadée** :
     - Mesurez les performances de l'allocateur multithreadé (`my_malloc_thread()` et `my_free_thread()`) par rapport à `malloc()`/`free()` dans un environnement multithreadé.
-
 ## Résultats des Mesures de Performances
 
-Le tableau suivant présente les temps d'allocation et de libération pour différentes tailles de blocs, en utilisant les méthodes `malloc()` et `free()`, `my_malloc()` et `my_free()`, ainsi que `my_malloc_thread()` et `my_free_thread()` avec multithreading. Le nombre total d'allocations est de 50 000 pour chaque test.
+Le tableau suivant présente les temps d'allocation et de libération pour différentes tailles de blocs, en utilisant les méthodes `malloc()` et `free()`, `my_malloc()` et `my_free()`, ainsi que `my_malloc_thread()` et `my_free_thread()` en multithreading. Le nombre total d'allocations est de 50 000 pour chaque test.
 
 | Taille du Bloc (octets) | Temps avec `malloc()` et `free()` (sec) | Temps avec `my_malloc()` et `my_free()` (sec) | Temps avec `my_malloc_thread()` et `my_free_thread()` en multithreading (sec) | Temps par allocation (1000 allocations) `malloc()` | Temps par allocation (1000 allocations) `my_malloc()` | Temps par allocation (1000 allocations) `my_malloc_thread()` |
 |-------------------------|-----------------------------------------|-----------------------------------------------|-------------------------------------------------------------------------------|---------------------------------------------------|--------------------------------------------------------|------------------------------------------------------------|
-| 10                      | 0.001612                                | 0.542407                                      | 0.025530                                                                     | 0.000032                                          | 0.010848                                               | 0.000051                                                   |
-| 30                      | 0.002478                                | 0.157445                                      | 0.024621                                                                     | 0.000050                                          | 0.003149                                               | 0.000049                                                   |
-| 70                      | 0.003633                                | 0.139059                                      | 0.025683                                                                     | 0.000073                                          | 0.002781                                               | 0.000051                                                   |
-| 125                     | 0.006941                                | 0.009660                                      | 0.030385                                                                     | 0.000139                                          | 0.000193                                               | 0.000061                                                   |
-| 230                     | 0.012850                                | 0.192408                                      | 0.023643                                                                     | 0.000257                                          | 0.003848                                               | 0.000047                                                   |
+| 10                      | 0.007417                                | 0.139891                                      | 0.028888                                                                     | 0.000148                                          | 0.002798                                               | 0.000578                                                   |
+| 30                      | 0.002925                                | 0.122146                                      | 0.027938                                                                     | 0.000059                                          | 0.002443                                               | 0.000559                                                   |
+| 70                      | 0.002646                                | 0.138319                                      | 0.023094                                                                     | 0.000053                                          | 0.002766                                               | 0.000462                                                   |
+| 125                     | 0.006127                                | 0.008061                                      | 0.028990                                                                     | 0.000123                                          | 0.000161                                               | 0.000580                                                   |
+| 230                     | 0.008752                                | 0.120995                                      | 0.028650                                                                     | 0.000175                                          | 0.002420                                               | 0.000573                                                   |
 
 ### Légende des Colonnes :
 
-- **Temps avec `malloc()` et `free()`** : Temps total pour allouer et libérer 50 000 blocs de mémoire avec les fonctions standard `malloc()` et `free()`.
-- **Temps avec `my_malloc()` et `my_free()`** : Temps total pour allouer et libérer 50 000 blocs de mémoire avec votre système d'allocation personnalisé `my_malloc()` et `my_free()`.
-- **Temps avec `my_malloc_thread()` et `my_free_thread()` en multithreading** : Temps total pour allouer et libérer 50 000 blocs de mémoire avec `my_malloc_thread()` et `my_free_thread()` en utilisant plusieurs threads.
+- **Temps avec `malloc()` et `free()` (sec)** : Temps total pour allouer et libérer 50 000 blocs de mémoire avec les fonctions standard `malloc()` et `free()`.
+- **Temps avec `my_malloc()` et `my_free()` (sec)** : Temps total pour allouer et libérer 50 000 blocs de mémoire avec votre système d'allocation personnalisé `my_malloc()` et `my_free()`.
+- **Temps avec `my_malloc_thread()` et `my_free_thread()` en multithreading (sec)** : Temps total pour allouer et libérer 50 000 blocs de mémoire avec `my_malloc_thread()` et `my_free_thread()` en utilisant plusieurs threads (dans notre cas, n_threads =5).
 - **Temps par allocation (1000 allocations)** : Temps moyen pour effectuer 1000 allocations de mémoire.
 
 ### Conclusion des Tests
 
-- Les tests montrent que l'allocateur personnalisé (`my_malloc()` et `my_free()`) est plus lent que les fonctions standards `malloc()` et `free()`, particulièrement pour les petites tailles de blocs. Cela peut être dû au surcoût de gestion des blocs, comme le recyclage et la coalescence.
-- En revanche, le multithreading (`my_malloc_thread()` et `my_free_thread()`) permet de réduire significativement le temps d'allocation et de libération par rapport aux versions non threadées pour des tailles de blocs plus grandes, en répartissant la charge sur plusieurs threads.
-- Le temps par allocation reste plus faible pour les petites tailles de blocs, mais les avantages du multithreading deviennent évidents sur les plus grandes tailles de blocs.
+- **`malloc()` et `free()`** restent les plus rapides, avec des temps très faibles pour l'allocation et la libération des blocs de mémoire, même pour les petites tailles de blocs.
+- **`my_malloc()` et `my_free()`** sont plus lents, surtout pour les petites tailles de blocs, en raison du surcoût de gestion des blocs libres et de l'absence d'optimisation pour les petites allocations.
+- **Multithreading avec `my_malloc_thread()` et `my_free_thread()`** montre un avantage lorsque les tailles de blocs augmentent, mais le temps par allocation reste plus élevé par rapport à `malloc()` et `free()` en raison de la gestion des threads et des mutex. Cependant, le multithreading permet de mieux utiliser les ressources du processeur pour les allocations et libérations parallèles, réduisant ainsi les temps d'exécution globaux pour les plus grandes tailles de blocs.
 
 ---
 
