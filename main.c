@@ -79,7 +79,7 @@ int main() {
 
   const size_t array_size= 5;
   size_t block_size[] = {10,30, 70, 125,230};
-  for (int i = 0; i < array_size; ++i) {
+  for (size_t i = 0; i < array_size; ++i) {
 
     double time_malloc =
         measure_allocations_default(n_allocations, block_size[i], malloc, free);
@@ -109,6 +109,56 @@ int main() {
                time_multithread, n_allocations, block_size[i], time_multithread*1000.0 / (double)n_allocations);
   }
 
+  /*const size_t arrayaleatoire_size = 1;
+  size_t bloc_size[] = {(size_t)-1};
+  srand((unsigned int)time(NULL));
+
+  for (int i = 0; i < arrayaleatoire_size; ++i) {
+    printf("\nMesures de performance avec allocations de taille aléatoire : \n");
+    size_t current_block_size = bloc_size[i];
+    if (current_block_size == (size_t)-1) {
+      current_block_size = 1 + rand() % 250;
+      printf("Génération d'une taille aléatoire : %zu\n", current_block_size);
+    }
+
+    double time_aleatoire = measure_allocations_default(n_allocations, current_block_size, malloc, free);
+    if (time_aleatoire < 0) {return 1;}
+    printf("Temps: %lf pour l'allocation et libération de %d blocs mémoires de "
+            "taille %zu avec méthodes malloc() et free(), seconds per 1000 alloc: %lf \n",
+            time_aleatoire, n_allocations, current_block_size,
+            time_aleatoire*1000.0 / n_allocations);
+
+
+  }*/
+
+
+  printf("\nMesures de performances avec tailles variables : \n\n");
+  const size_t min_random_size = 1;
+  const size_t max_random_size = 250;
+  const int nb_allocations = 500000;
+
+  double time_malloc_random = measure_allocations_default_variable_size(nb_allocations, min_random_size, max_random_size, malloc, free);
+  if (time_malloc_random < 0) {return 1;}
+
+  printf("Temps: %lf pour l'allocation et libération de %d blocs mémoires de "
+         "tailles variables avec malloc() et free(), seconds per 1000 alloc: %lf \n",
+         time_malloc_random, nb_allocations, time_malloc_random * 1000.0 / (double)nb_allocations);
+  
+  double time_my_malloc_random = measure_allocations_variable_size(nb_allocations, min_random_size, max_random_size, my_malloc, my_free, 0);
+  if (time_my_malloc_random < 0) {return 1;}
+
+  printf("Temps: %lf pour l'allocation et libération de %d blocs mémoires de "
+         "tailles variables avec my_malloc() et my_free(), seconds per 1000 alloc: %lf \n",
+         time_my_malloc_random, nb_allocations, time_my_malloc_random * 1000.0 / (double)nb_allocations);
+
+  
+  double time_multithread_random = measure_allocations_thread_variable_size(n_threads, n_allocations, min_random_size, max_random_size, my_malloc_thread, my_free_thread, 0);
+    if (time_multithread_random < 0) {
+        return 1;  // Return on error
+    }
+    printf("Temps: %lf pour l'allocation et libération de %d blocs mémoires de taille variables avec méthodes my_malloc_thread() et my_free_thread() en multithreading, seconds per 1000 alloc: %lf \n",
+            time_multithread_random, nb_allocations, time_multithread_random*1000.0 / (double)nb_allocations);
+  
   return 0;
 
 }

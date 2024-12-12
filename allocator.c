@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <stdlib.h> //pour srand() et rand()
 
 #include "allocator.h"
 //liste globale des blocs libres classés par tailles
@@ -62,7 +63,7 @@ int recycle_block(BlockHeader* block, int verbose) {
 
 
     if (verbose) {
-        printf("Block recycled at address %p\n", block);
+        printf("Block recycled at address %p\n", (void*)block);
     }
 
     return 0;
@@ -102,7 +103,7 @@ int recycle_block_thread(BlockHeader* block, int verbose) {
     pthread_mutex_unlock(&free_list_mutex[class_index]);
 
     if (verbose) {
-        printf("Block recycled at address %p\n", block);
+        printf("Block recycled at address %p\n", (void*)block);
     }
 
     return 0;
@@ -257,7 +258,7 @@ void* my_malloc(size_t size, int verbose) {
             return NULL;
         }
         if (verbose) {
-            printf("Bloc alloué avec mmap à l'adresse : %p\n", header);
+            printf("Bloc alloué avec mmap à l'adresse : %p\n", (void*)header);
         }
     }
 
@@ -288,7 +289,7 @@ void* my_malloc_thread(size_t size, int verbose) {
             return NULL;
         }
         if (verbose) {
-            printf("Bloc alloué avec mmap à l'adresse : %p\n", header);
+            printf("Bloc alloué avec mmap à l'adresse : %p\n", (void*)header);
         }
     }
 
@@ -312,7 +313,7 @@ void my_free(void* ptr, int verbose) {
     BlockHeader* header = (BlockHeader*)ptr - 1;
 
     if (verbose) {
-        printf("Libération du bloc à l'adresse %p, taille %zu\n", header, header->size);
+        printf("Libération du bloc à l'adresse %p, taille %zu\n", (void*)header, header->size);
     }
 
     if (recycle_block(header,verbose) == -1) {
@@ -339,7 +340,7 @@ void my_free_thread(void* ptr, int verbose) {
     BlockHeader* header = (BlockHeader*)ptr - 1;
 
     if (verbose) {
-        printf("Libération du bloc à l'adresse %p, taille %zu\n", header, header->size);
+        printf("Libération du bloc à l'adresse %p, taille %zu\n", (void*)header, header->size);
     }
 
     if (recycle_block_thread(header,verbose) == -1) {
@@ -419,6 +420,76 @@ double measure_allocations_default(int num_allocations, size_t size, void* (*all
 }
 
 
+
+double measure_allocations_variable_size(int n_allocations, size_t min_size, size_t max_size, void* (*alloc_func)(size_t, int), void (*free_func)(void*, int), int verbose){
+    struct timeval start, end;
+    void* block;
+
+    gettimeofday(&start, NULL);
+    
+    srand(time(0));
+    for (int i = 0; i < n_allocations; ++i) {
+        // Générer une taille aléatoire entre min_size et max_size
+        size_t random_size = min_size + rand() % (max_size - min_size + 1);
+        
+        // Allocation de mémoire
+        block = alloc_func(random_size, verbose);
+        if (block == NULL) {
+            perror("Allocation failed");
+            return -1.0;
+        }
+
+        // Affichage de la taille générée et de l'adresse allouée si verbose est activé
+        if (verbose) {
+            printf("Taille générée : %ld\n", random_size);
+            printf("Bloc alloué à l'adresse %p pour la taille %zu\n", block, random_size);
+        }
+
+        // Libération du bloc alloué
+        free_func(block, verbose);
+        if (verbose) {
+            printf("Libération du bloc à l'adresse %p\n", block);
+        }
+    }
+    gettimeofday(&end, NULL);
+
+    // Calcul du temps écoulé en secondes
+    double elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
+    return elapsed_time;
+}
+
+//Cette fonction existe car malloc a un seul argument tandis que my_alloc en a deux (+verbose)
+double measure_allocations_default_variable_size(int n_allocations, size_t min_size, size_t max_size, void* (*alloc_func)(size_t), void (*free_func)(void* )) {
+    struct timeval start, end;
+    void* block[n_allocations];
+
+    // Démarre le chronomètre
+    gettimeofday(&start, NULL);
+
+    // Allocation
+    for (int i = 0; i < n_allocations; ++i) {
+        // Générer une taille aléatoire entre min_size et max_size
+        size_t random_size = min_size + rand() % (max_size - min_size + 1);
+        
+        // Allocation de mémoire
+        block[i] = alloc_func(random_size);
+        if (block[i] == NULL) {
+            perror("Allocation failed");
+            return -1.0;
+        }
+
+        // Libération du bloc alloué
+        free_func(block[i]);
+    }
+    gettimeofday(&end, NULL);
+
+    // Arrête le chronomètre
+    gettimeofday(&end, NULL);
+
+    // Calcul du temps écoulé en secondes
+    double elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
+    return elapsed_time;
+}
 
 // Fonction pour ajuster l'adresse à l'alignement souhaité
 void* align_memory(void* ptr, size_t alignment) {

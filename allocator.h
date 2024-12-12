@@ -61,6 +61,8 @@ void* thread_function(void *arg);
 double measure_allocations(int num_allocations, size_t size, void* (*alloc_func)(size_t,int), void (*free_func)(void*, int), int verbose);
 double measure_allocations_default(int num_allocations, size_t size, void* (*alloc_func)(size_t), void (*free_func)(void*));
 double measure_allocations_thread(int num_threads, int num_allocations, size_t size, void* (*alloc_func)(size_t, int), void (*free_func)(void*, int), int verbose);
+double measure_allocations_variable_size(int n_allocations, size_t min_size, size_t max_size, void* (*alloc_func)(size_t, int), void (*free_func)(void*, int), int verbose);
+double measure_allocations_default_variable_size(int n_allocations, size_t min_size, size_t max_size, void* (*alloc_func)(size_t), void (*free_func)(void* ));
 
 
 #endif
