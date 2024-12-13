@@ -95,6 +95,8 @@ Le tableau suivant présente les temps d'allocation et de libération pour diff�
 | 70                      | 0.002646                                | 0.138319                                      | 0.023094                                                                     | 0.000053                                          | 0.002766                                               | 0.000462                                                   |
 | 125                     | 0.006127                                | 0.008061                                      | 0.028990                                                                     | 0.000123                                          | 0.000161                                               | 0.000580                                                   |
 | 230                     | 0.008752                                | 0.120995                                      | 0.028650                                                                     | 0.000175                                          | 0.002420                                               | 0.000573                                                   |
+|                                                                                                                                                                                                                                                                                                                                                                            |
+| Random                  | 0.000867                                | 0.001632                                      | 0.035749                                                                     | 0.000017                                          | 0.000033                                               | 0.000715                                                   |
 
 ### Légende des Colonnes :
 
@@ -109,6 +111,10 @@ Le tableau suivant présente les temps d'allocation et de libération pour diff�
 - **`my_malloc()` et `my_free()`** sont plus lents, surtout pour les petites tailles de blocs, en raison du surcoût de gestion des blocs libres et de l'absence d'optimisation pour les petites allocations.
 - **Multithreading avec `my_malloc_thread()` et `my_free_thread()`** montre un avantage lorsque les tailles de blocs augmentent, mais le temps par allocation reste plus élevé par rapport à `malloc()` et `free()` en raison de la gestion des threads et des mutex. Cependant, le multithreading permet de mieux utiliser les ressources du processeur pour les allocations et libérations parallèles, réduisant ainsi les temps d'exécution globaux pour les plus grandes tailles de blocs.
 
+- **`malloc()` et `free()`** restent plus rapides avec des tailles de blocs générées aléatoirement pour chaque allocation, ils améliorent leur temps d'allocation et de libération.  
+- **`my_malloc()` et `my_free()`** améliorent énormément leur temps d'allocation et de libération, ce qui leur permet de se rapprocher des temps de `malloc()` et `free()`.
+- **Multithreading avec `my_malloc_thread()` et `my_free_thread()`** ne montrent pas vraiment de différence de performance par rapport au cas d'allocation de blocs avec taille connue. 
+
 ---
 
 *Note : Les résultats peuvent varier en fonction des ressources système, ceci est donc une approximation. Ces résultats sont affichés à la fin de l'execution du programme principal*
@@ -117,7 +123,9 @@ Le tableau suivant présente les temps d'allocation et de libération pour diff�
 
 ## Conclusion
 
-Ce projet démontre la puissance d'un allocateur de mémoire personnalisé et met en évidence l'impact des techniques de gestion de mémoire telles que l'alignement des blocs, la coalescence, le recyclage et le multithreading pour améliorer les performances. Les comparaisons dans la section de benchmarking montrent comment l'allocateur personnalisé surpasse les fonctions standard `malloc()`/`free()`, en particulier dans les environnements multithreadés.
+Ce projet démontre la puissance d'un allocateur de mémoire personnalisé et met en évidence l'impact des techniques de gestion de mémoire telles que l'alignement des blocs, la coalescence, le recyclage et le multithreading pour améliorer les performances.  
+Bien que les fonctions standards `malloc()` et `free()` soient toujours plus rapides pour les petites allocations, l'allocateur personnalisé s'améliore pour des blocs de taille plus important, notamment grâce à la gestion de la mémoire et à la réduction de fragmentation.  
+Comme le montre les résultats présentés dans le benchmarking pour des blocs de tailles variables, l'allocateur répond efficacement aux besoins réels d'allocation mémoire, grâce à des optimisations telle que le recyclage des blocs. 
 
 En suivant les bonnes pratiques pour suivre les fuites mémoire et en optimisant la gestion des blocs, l'allocateur minimise la fragmentation de mémoire et améliore les performances globales du système.
 
