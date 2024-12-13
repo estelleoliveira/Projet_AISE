@@ -117,7 +117,7 @@ Le tableau suivant présente les temps d'allocation et de libération pour diff�
 
 ---
 
-*Note : Les résultats peuvent varier en fonction des ressources système, ceci est donc une approximation. Ces résultats sont affichés à la fin de l'execution du programme principal*
+*Note : Les résultats peuvent varier en fonction des ressources système, ceci est donc une approximation. Ces résultats sont affichés à la fin de l'execution du programme principal.*
 
 ---
 
